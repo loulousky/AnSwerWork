@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="horizontal" android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="10dp">
+
+    <ImageView
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:id="@+id/img_flag"
+        android:src="@mipmap/answer_icon_ring_default"/>
+
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@android:color/secondary_text_light"
+        android:text="A."
+        android:layout_marginLeft="10dp"
+        android:textSize="15sp"
+        android:id="@+id/txt_head"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@android:color/secondary_text_light"
+        android:textSize="15sp"
+        android:text="刘海真特么的帅"
+        android:layout_marginLeft="10dp"
+        android:id="@+id/txt_content"/>
+
+</LinearLayout>
