@@ -10,6 +10,15 @@ public class ChoseState {
 
      private State state;
 
+     private boolean currentCorrect=false;
+
+    public boolean isCurrentCorrect() {
+        return currentCorrect;
+    }
+
+    public void setCurrentCorrect(boolean currentCorrect) {
+        this.currentCorrect = currentCorrect;
+    }
 
     public String getLittle_title() {
         return little_title;

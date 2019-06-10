@@ -2,6 +2,7 @@ package com.liuhai.answerwork;
 
 import android.animation.Animator;
 import android.animation.ObjectAnimator;
+import android.graphics.Color;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentPagerAdapter;
@@ -12,6 +13,7 @@ import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.OrientationHelper;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,6 +27,7 @@ import com.liuhai.answerwork.dateutils.Httputils;
 import com.liuhai.answerwork.fragment.AnswerCardFragment;
 import com.liuhai.answerwork.utils.Content;
 import com.liuhai.answerwork.utils.GsonUtils;
+import com.liuhai.answerwork.utils.StringUtils;
 import com.liuhai.answerwork.view.ShadowView;
 import com.liuhai.bean.BasicAnserDate;
 import com.liuhai.bean.ChoseState;
@@ -34,6 +37,7 @@ import com.liuhai.bean.QuestDetailDateTwo;
 import com.liuhai.bean.QuestStateDate;
 import com.liuhai.bean.State;
 import com.lzy.okgo.callback.StringCallback;
+import com.lzy.okgo.model.Response;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -43,7 +47,6 @@ import java.util.Collections;
 import java.util.List;
 
 import okhttp3.Call;
-import okhttp3.Response;
 
 /**
  * 答题首页
@@ -65,6 +68,8 @@ public class AnSwerPage extends AppCompatActivity implements View.OnClickListene
 
     // guides.get(i).getState.getvalue() 拿到答案的选项
     List<ChoseState> guides=new ArrayList<>();
+    private int examid;
+    private int blockid;
 
     public List<ChoseState> getGuides() {
         return guides;
@@ -146,6 +151,19 @@ private void showDate(){
         public void onPageScrolled(int i, float v, int i1) {
             txt_num.setText("("+(i+1)+"/"+fragmentList.size()+")");
 
+            //有的选项卡没有选答案
+            if(getGuides().get(i)!=null&&getGuides().get(i).getState()==State.NOANSWER){
+                btn_sure.setText("确认");
+            }
+
+             //如果是最后一页 而且没有选择答案则为确认，最后一页选过了为提交，未提交返回上一页，如果没有选择则为确认
+            if(i==fragmentList.size()-1&&(getGuides().get(i)!=null&&getGuides().get(i).getState()==State.NOANSWER)){
+                btn_sure.setText("确认");
+            }else if(i==fragmentList.size()-1){
+                btn_sure.setText("提交");
+            }
+
+
         }
 
         @Override
@@ -167,7 +185,7 @@ private void showDate(){
     private void loadDate(){
 
 
-        Httputils.HttpGet(Content.QuestionsCollect("11"), new StringCallback() {
+        Httputils.HttpGet(Content.QuestionsCollect("54"), new StringCallback() {
             @Override
             public void onSuccess(com.lzy.okgo.model.Response<String> response) {boolean flag=false;
                 if(AnSwerPage.this.isFinishing()){
@@ -184,6 +202,7 @@ private void showDate(){
                 }
 
                 List<QuestDate> datelist=null;
+
                 if(flag) {
                     BasicAnserDate<QuestDetailDate> result = null;
                     try {
@@ -201,6 +220,7 @@ private void showDate(){
                     //每夜数据传递给各个fragment
                     txt_title.setText(result.getObj().getTitle());
                     datelist = result.getObj().getExamInfoList().getObj();
+
                 }else{
 
                     BasicAnserDate<QuestDetailDateTwo> result = null;
@@ -229,6 +249,8 @@ private void showDate(){
                         if(qdate==null){
                             continue;
                         }
+                        blockid = qdate.getBlockId();
+                        examid = qdate.getExamId();
                         AnswerCardFragment fragment= AnswerCardFragment.getInstance(qdate.getQuestionId(),qdate.getBlockId(),qdate.getExamId());
                         fragmentList.add(fragment);
                         StringBuilder builder=new StringBuilder();
@@ -344,13 +366,48 @@ private void showDate(){
                 break;
 
             case R.id.btn_sure:
-//                AnswerCardFragment cardFragment= (AnswerCardFragment) fragmentList.get(viewPager.getCurrentItem());
-//                cardFragment.commit();
+                AnswerCardFragment cardFragment= (AnswerCardFragment) fragmentList.get(viewPager.getCurrentItem());
+                cardFragment.commit(viewPager.getCurrentItem(),getGuides().get(viewPager.getCurrentItem()).getState(),true);
+              //  Toast.makeText(getApplicationContext(),"点击去定提交了"+"当前页面的答案是"+guides.get(viewPager.getCurrentItem()).getState().getAnswer(),1).show();
+                //显示得分，具体逻辑自己改
+                if(viewPager.getCurrentItem()==fragmentList.size()-1) {
+                    if (btn_sure.getText().equals("提交")) {
 
-                Toast.makeText(getApplicationContext(),"点击去定提交了"+"当前页面的答案是"+guides.get(viewPager.getCurrentItem()).getState().getAnswer(),1).show();
-                //最后一页显示蔗渣，具体逻辑自己改
-                if(viewPager.getCurrentItem()==fragmentList.size()-1){
-                    showshodow();
+
+                        //提交答案
+                        String answers = StringUtils.getAnsweers(getGuides());
+                        String url = Content.QuestionCommit(blockid, examid, answers);
+                        Httputils.HttpGet(url, new StringCallback() {
+                            @Override
+                            public void onSuccess(Response<String> response) {
+
+                                if (AnSwerPage.this.isFinishing()) {
+                                    return;
+                                }
+                                btn_sure.setClickable(false);
+                                btn_sure.setText("已提交");
+                                btn_sure.setTextColor(Color.parseColor("#f6f6f6"));
+                                if (response.body() != null && !response.body().equals("")) {
+                                    try {
+                                        JSONObject result = new JSONObject(response.body());
+                                        if (result.has("obj")) {
+                                            int score = result.getInt("obj");
+                                            showshodow();
+                                            //禁用提交
+                                            btn_sure.setClickable(false);
+                                            btn_sure.setText("已提交");
+                                            btn_sure.setTextColor(Color.parseColor("#f6f6f6"));
+                                            Toast.makeText(getApplicationContext(), "当前得分：" + score, 0).show();
+                                        }
+                                    } catch (JSONException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            }
+                        });
+                    }else{
+                        btn_sure.setText("提交");
+                    }
                 }
                 break;
 
@@ -389,8 +446,16 @@ private void showDate(){
          *
          * @param i 第几道提
          * @param state 答案 A,B,C,D。。。
+         * @param shouldConnectNet 是否联网判断是否正确
          */
-        public void commit(int i,State state );
+        public void commit(int i,State state,boolean shouldConnectNet);
+
+
+        /**
+         * 点击遮罩的重做按钮
+         */
+        public void reDo();
+
 
     }
 }

@@ -9,6 +9,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.daquexian.flexiblerichtextview.FlexibleRichTextView;
 import com.liuhai.answerwork.AnSwerPage;
 import com.liuhai.answerwork.R;
 import com.liuhai.bean.NumberDate;
@@ -24,11 +25,20 @@ public class NumDateAdapter extends RecyclerView.Adapter<NumDateAdapter.NumberVi
     List<NumberDate> list;
     Activity context;
     AnSwerPage.CommitAnSwer commitAnSwer;
+    boolean disabletouch;
 
-    public NumDateAdapter(List<NumberDate> list, Activity context, AnSwerPage.CommitAnSwer commitAnSwer) {
+    public NumDateAdapter(List<NumberDate> list, Activity context,AnSwerPage.CommitAnSwer commitAnSwer) {
         this.list = list;
         this.context=context;
         this.commitAnSwer=commitAnSwer;
+    }
+
+    public boolean isDisabletouch() {
+        return disabletouch;
+    }
+
+    public void setDisabletouch(boolean disabletouch) {
+        this.disabletouch = disabletouch;
     }
 
     @NonNull
@@ -45,17 +55,19 @@ public class NumDateAdapter extends RecyclerView.Adapter<NumDateAdapter.NumberVi
         numberViewHolder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                //清除别的选项，设置自身
-                for (NumberDate date:list
-                     ) {
-                    date.setChose(false);
+                if(!disabletouch) {
+                    //清除别的选项，设置自身
+                    for (NumberDate date : list
+                    ) {
+                        date.setChose(false);
+                    }
+                    numberDate.setChose(true);
+
+                    String answer = State.getValue(list.get(i).getHead()).getAnswer();
+                    commitAnSwer.commit(((AnSwerPage) context).getViewPager().getCurrentItem(), State.getValue(list.get(i).getHead()),false);
+
+                    notifyDataSetChanged();
                 }
-                numberDate.setChose(true);
-
-                String answer=  State.getValue(list.get(i).getHead()).getAnswer();
-                commitAnSwer.commit(((AnSwerPage)context).getViewPager().getCurrentItem(), State.getValue(list.get(i).getHead()));
-
-                notifyDataSetChanged();
 
 
             }
@@ -79,7 +91,8 @@ public class NumDateAdapter extends RecyclerView.Adapter<NumDateAdapter.NumberVi
 
     class NumberViewHolder extends RecyclerView.ViewHolder{
 
-        TextView head,content;
+        TextView head;
+        FlexibleRichTextView content;
         ImageView img_flag;
 
         public NumberViewHolder(@NonNull View itemView) {
